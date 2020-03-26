@@ -1,0 +1,128 @@
+import numpy as nump
+import csv
+import matplotlib.pyplot as plot
+
+
+def syn_ana(ty="Syn"):
+    if ty == "Syn":
+        length = 238
+    elif ty == "BENIGN":
+        length = 68
+    else:
+        length = 0
+    # length = 238  # Syn, 238 for attack, 68 for benign
+    length = length + 1
+    duration = nump.zeros(length)
+    node_degree = nump.zeros(length)
+    client_degree = nump.zeros(length)
+    server_degree = nump.zeros(length)
+    timestamps = []
+    benigns = []
+    indicator_benign = nump.zeros(length)
+
+    kmax = nump.zeros(length)
+
+    with open('../../data/CSV-01-12/01-12/Syn.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        c = 0   # c counts for each edge
+        i = 0   # i counts for each timestamp
+        nodes = []   # each ip is regarded as a node
+        clients = []
+        servers = []
+        current_edge_client = 0
+        current_edge_server = 0
+        current_edge_total = 0
+        # graph metrics
+        # static metrics
+        average_vin = 0
+        average_vout = 0
+        average_vino = 0
+        kmax = 0
+        edd = 0
+        count_of_attack = 0
+        count_of_benign = 0
+        count_of_other = 0
+        current_timestamp = 0
+        for row in reader:
+            elements_1 = row[0].split(",")
+            elements_2 = row[1].split(",")
+            type = elements_2[len(elements_2) - 1]
+            previous_timestamp = current_timestamp
+            if 0 <= c:
+                if c > 0:
+                    client_ip = elements_1[2]
+                    server_ip = elements_1[4]
+                    # if type == "Syn":
+                    #     count_of_attack += 1
+                    # elif type == "BENIGN":
+                    #     count_of_benign += 1
+                    #     indicator_benign[i] = 1
+                    # else:
+                    #     count_of_other += 1
+                    if type == ty:
+                        if not(client_ip in clients):
+                            clients.append(client_ip)
+                        if not(server_ip in servers):
+                            servers.append(server_ip)
+                        timestamp = elements_2[0].split(".")[0]
+                        # print(elements_2[0])
+                        current_timestamp = timestamp
+                        flow_duration = elements_2[1]
+                        duration[i] = int(flow_duration) // 1000000 + 1
+                        if current_timestamp != previous_timestamp:
+                            previous_timestamp = current_timestamp
+
+                            client_degree[i] = current_edge_client
+
+                            server_degree[i] = current_edge_server
+                            node_degree[i] = current_edge_total
+
+                            timestamps.append(timestamp)
+                            average_vin = 0
+                            average_vout = 0
+                            average_vino = 0
+                            kmax = 0
+                            edd = 0
+                            i = i + 1
+                            current_edge_client = 0
+                            current_edge_server = 0
+                            current_edge_total = 0
+                        else:
+                            current = nump.count_nonzero(duration)
+                            current_edge_client += current
+                            current_edge_server += current
+                            current_edge_total += 2 * current
+                        duration[duration > 0] -= 1
+            else:
+                break
+
+            c = c + 1
+
+    # print("Count of Syn:")
+    # print(count_of_attack)
+    # print("Count of benign:")
+    # print(count_of_benign)
+    # print("Count of other:")
+    # print(count_of_other)
+    # print("Node degree averaged over time by second:")
+    # print(nump.average(node_degree))
+    # print("Variance of node degree:")
+    # print(nump.var(node_degree))
+    # print("Standard deviation of node degree:")
+    # print(nump.std(node_degree))
+    # print(nump.average(client_degree))
+    # print(nump.average(server_degree))
+    # plot.plot(range(100), node_degree[0:100])
+    # plot.show()
+    # plot.plot(range(100, 200), node_degree[100:200])
+    # plot.show()
+    # indicator_benign[indicator_benign == 1] = node_degree[indicator_benign == 1]
+    # plot.plot(range(238), node_degree[:-1])
+    # plot.plot(range(238), indicator_benign[:-1])
+    # plot.show()
+    # print(i)
+    # print(c)
+    return node_degree
+
+
+syn_ana("BENIGN")
